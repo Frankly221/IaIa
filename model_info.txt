@@ -1,0 +1,81 @@
+======================================================================
+INFORMACIÓN DEL MODELO MLP - ENTREGA A TIEMPO
+======================================================================
+
+CONFIGURACIÓN DEL MODELO:
+----------------------------------------------------------------------
+Número de características de entrada: 14
+Total de capas: 6
+Total de parámetros: 3,585
+Parámetros entrenables: 3,585
+Optimizador: Adam
+Función de pérdida: Binary Crossentropy
+Épocas entrenadas: 100
+Batch size: 64
+
+ARQUITECTURA:
+----------------------------------------------------------------------
+Capa de Entrada: 14 neuronas
+Capa Oculta #1: 64 neuronas - Activación: relu
+Capa Oculta #2: 32 neuronas - Activación: relu
+Capa Oculta #3: 16 neuronas - Activación: relu
+Capa de Salida: 1 neurona(s) - Activación: sigmoid
+
+MÉTRICAS FINALES:
+----------------------------------------------------------------------
+Train Loss: 0.0292
+Val Loss: 0.1646
+Train AUC: 0.9998
+Val AUC: 0.9837
+Train PRECISION: 0.9920
+Val PRECISION: 0.9744
+Train RECALL: 0.9920
+Val RECALL: 0.9383
+Train LEARNING_RATE: 0.0010
+
+Val ROC-AUC: 0.9925
+Val PR-AUC: 0.9920
+Best threshold: 0.1800
+Best F1 Score: 0.9571
+
+REPORTE DE CLASIFICACIÓN (TEST SET):
+----------------------------------------------------------------------
+              precision    recall  f1-score   support
+
+           0      1.000     0.970     0.985       100
+           1      0.964     1.000     0.982        80
+
+    accuracy                          0.983       180
+   macro avg      0.982     0.985     0.983       180
+weighted avg      0.984     0.983     0.983       180
+
+======================================================================
+ARCHIVOS GENERADOS:
+----------------------------------------------------------------------
+1. mlp_model.keras - Modelo completo en formato Keras
+2. mlp_weights.weights.h5 - Solo pesos del modelo
+3. scaler.pkl - Escalador StandardScaler
+4. mlp_training_history.png - Gráficas de entrenamiento
+5. mlp_weights_distribution.png - Distribución de pesos
+6. mlp_architecture.png - Arquitectura del modelo
+7. model_info.txt - Este archivo de información
+
+======================================================================
+CÓMO USAR EL MODELO GUARDADO:
+----------------------------------------------------------------------
+import pickle
+from tensorflow.keras.models import load_model
+
+# Cargar el modelo
+model = load_model('mlp_model.keras')
+
+# Cargar el escalador
+with open('scaler.pkl', 'rb') as f:
+    scaler = pickle.load(f)
+
+# Hacer predicciones
+# X_new = ... # tus nuevos datos
+# X_new_scaled = scaler.transform(X_new)
+# predictions = model.predict(X_new_scaled)
+# binary_predictions = (predictions >= 0.1800).astype(int)
+======================================================================

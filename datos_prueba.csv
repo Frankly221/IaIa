@@ -1,0 +1,2 @@
+Clima,TraficoPico,RiesgoRuta,Distancia_km,TiempoEstimado_min,TiempoReal_min,Demora_min,TipoCarga,Peso_kg,ExperienciaConductor_anios,AntiguedadCamion_anios,FallasMecanicas,NivelCombustible_pct,HorarioSalida
+2,2,2,400.0,300,330.0,30.0,2,8000,0,2,0,1,2
