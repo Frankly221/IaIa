@@ -4,10 +4,10 @@ INFORMACIÓN DEL MODELO MLP - ENTREGA A TIEMPO
 
 CONFIGURACIÓN DEL MODELO:
 ----------------------------------------------------------------------
-Número de características de entrada: 14
+Número de características de entrada: 19
 Total de capas: 6
-Total de parámetros: 3,585
-Parámetros entrenables: 3,585
+Total de parámetros: 3,905
+Parámetros entrenables: 3,905
 Optimizador: Adam
 Función de pérdida: Binary Crossentropy
 Épocas entrenadas: 100
@@ -15,7 +15,7 @@ Batch size: 64
 
 ARQUITECTURA:
 ----------------------------------------------------------------------
-Capa de Entrada: 14 neuronas
+Capa de Entrada: 19 neuronas
 Capa Oculta #1: 64 neuronas - Activación: relu
 Capa Oculta #2: 32 neuronas - Activación: relu
 Capa Oculta #3: 16 neuronas - Activación: relu
@@ -23,31 +23,31 @@ Capa de Salida: 1 neurona(s) - Activación: sigmoid
 
 MÉTRICAS FINALES:
 ----------------------------------------------------------------------
-Train Loss: 0.0292
+Train Loss: 0.1732
 Val Loss: 0.1646
-Train AUC: 0.9998
-Val AUC: 0.9837
-Train PRECISION: 0.9920
-Val PRECISION: 0.9744
-Train RECALL: 0.9920
-Val RECALL: 0.9383
+Train AUC: 0.9828
+Val AUC: 0.9822
+Train PRECISION: 0.9501
+Val PRECISION: 0.9467
+Train RECALL: 0.9391
+Val RECALL: 0.9595
 Train LEARNING_RATE: 0.0010
 
-Val ROC-AUC: 0.9925
-Val PR-AUC: 0.9920
-Best threshold: 0.1800
-Best F1 Score: 0.9571
+Val ROC-AUC: 0.9822
+Val PR-AUC: 0.9874
+Best threshold: 0.7400
+Best F1 Score: 0.9655
 
 REPORTE DE CLASIFICACIÓN (TEST SET):
 ----------------------------------------------------------------------
               precision    recall  f1-score   support
 
-           0      1.000     0.970     0.985       100
-           1      0.964     1.000     0.982        80
+           0      0.854     0.921     0.886        76
+           1      0.912     0.838     0.873        74
 
-    accuracy                          0.983       180
-   macro avg      0.982     0.985     0.983       180
-weighted avg      0.984     0.983     0.983       180
+    accuracy                          0.880       150
+   macro avg      0.883     0.879     0.880       150
+weighted avg      0.882     0.880     0.880       150
 
 ======================================================================
 ARCHIVOS GENERADOS:
@@ -77,5 +77,5 @@ with open('scaler.pkl', 'rb') as f:
 # X_new = ... # tus nuevos datos
 # X_new_scaled = scaler.transform(X_new)
 # predictions = model.predict(X_new_scaled)
-# binary_predictions = (predictions >= 0.1800).astype(int)
+# binary_predictions = (predictions >= 0.7400).astype(int)
 ======================================================================
