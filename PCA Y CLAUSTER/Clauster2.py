@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
+from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score
 from sklearn.preprocessing import StandardScaler
 
 print("=" * 70)
@@ -40,13 +40,161 @@ print(f"\n🔍 APLICANDO K-MEANS CON K=3")
 kmeans = KMeans(n_clusters=3, random_state=42, n_init=10, max_iter=300)
 clusters = kmeans.fit_predict(X_scaled)
 
-# Métricas
+# Métricas de clustering
 silhouette_avg = silhouette_score(X_scaled, clusters)
+davies_bouldin = davies_bouldin_score(X_scaled, clusters)
+calinski_harabasz = calinski_harabasz_score(X_scaled, clusters)
 inertia = kmeans.inertia_
 
 print(f"   ✅ Clustering completado")
 print(f"   📊 Inercia: {inertia:.2f}")
 print(f"   📈 Silhouette Score: {silhouette_avg:.3f}")
+print(f"   📉 Davies-Bouldin Index: {davies_bouldin:.3f}")
+print(f"   📊 Calinski-Harabasz Score: {calinski_harabasz:.2f}")
+
+# 5. Calcular métricas adicionales de evaluación de clusters
+def calcular_metricas_clustering(X, labels, centroids):
+    """
+    Calcula métricas de evaluación para clustering (VERSIÓN CORREGIDA)
+    """
+    n_clusters = len(np.unique(labels))
+    n_samples = len(X)
+    
+    metrics = {}
+    
+    # 1. IoU (Intersection over Union) - adaptado para clustering
+    iou_scores = []
+    for i in range(n_clusters):
+        cluster_i = X[labels == i]
+        centroid_i = centroids[i]
+        
+        dist_intra = np.mean(np.linalg.norm(cluster_i - centroid_i, axis=1))
+        
+        other_clusters = X[labels != i]
+        if len(other_clusters) > 0:
+            dist_inter = np.mean(np.linalg.norm(other_clusters - centroid_i, axis=1))
+            intersection = max(0, dist_inter - dist_intra)
+            union = dist_inter + dist_intra
+            iou = intersection / union if union > 0 else 0
+            iou_scores.append(iou)
+    
+    metrics['IoU'] = np.mean(iou_scores) if iou_scores else 0
+    
+    # 2. Dice Coefficient
+    dice_scores = []
+    for i in range(n_clusters):
+        cluster_i = X[labels == i]
+        centroid_i = centroids[i]
+        dist_intra = np.mean(np.linalg.norm(cluster_i - centroid_i, axis=1))
+        
+        for j in range(i + 1, n_clusters):
+            centroid_j = centroids[j]
+            dist_inter = np.linalg.norm(centroid_i - centroid_j)
+            dice = (2 * dist_inter) / (dist_inter + 2 * dist_intra)
+            dice_scores.append(dice)
+    
+    metrics['Dice'] = np.mean(dice_scores) if dice_scores else 0
+    
+    # 3. Precision - CORREGIDA
+    correct_assignments = 0
+    for idx, label in enumerate(labels):
+        distances = [np.linalg.norm(X[idx] - centroid) for centroid in centroids]
+        closest_centroid = np.argmin(distances)
+        if closest_centroid == label:
+            correct_assignments += 1
+    
+    metrics['Precision'] = correct_assignments / n_samples
+    
+    # 4. Recall - CORREGIDA
+    recall_scores = []
+    for i in range(n_clusters):
+        cluster_points = X[labels == i]
+        centroid = centroids[i]
+        
+        if len(cluster_points) == 0:
+            continue
+        
+        # Radio máximo del cluster
+        max_radius = np.max(np.linalg.norm(cluster_points - centroid, axis=1))
+        
+        # Puntos dentro del radio máximo
+        all_distances = np.linalg.norm(X - centroid, axis=1)
+        points_in_radius = np.sum(all_distances <= max_radius)
+        actually_in_cluster = len(cluster_points)
+        
+        # Recall = puntos en cluster / puntos que deberían estar
+        # Limitar a máximo 1.0
+        recall = min(1.0, actually_in_cluster / points_in_radius if points_in_radius > 0 else 0)
+        recall_scores.append(recall)
+    
+    metrics['Recall'] = np.mean(recall_scores) if recall_scores else 0
+    
+    # 5. F1 Score - CORREGIDA
+    if metrics['Precision'] + metrics['Recall'] > 0:
+        metrics['F1'] = 2 * (metrics['Precision'] * metrics['Recall']) / (metrics['Precision'] + metrics['Recall'])
+    else:
+        metrics['F1'] = 0
+    
+    # Asegurar que F1 esté entre 0 y 1
+    metrics['F1'] = min(1.0, metrics['F1'])
+    
+    # 6. Accuracy
+    accuracy_count = 0
+    for i in range(n_clusters):
+        cluster_points = X[labels == i]
+        if len(cluster_points) == 0:
+            continue
+            
+        centroid = centroids[i]
+        avg_radius = np.mean(np.linalg.norm(cluster_points - centroid, axis=1))
+        distances = np.linalg.norm(cluster_points - centroid, axis=1)
+        accuracy_count += np.sum(distances <= avg_radius)
+    
+    metrics['Accuracy'] = accuracy_count / n_samples
+    
+    return metrics
+
+# Calcular métricas personalizadas
+print(f"\n🔬 CALCULANDO MÉTRICAS AVANZADAS...")
+metrics = calcular_metricas_clustering(X_scaled, clusters, kmeans.cluster_centers_)
+
+print(f"\n" + "=" * 70)
+print("MÉTRICAS DE EVALUACIÓN DEL CLUSTERING")
+print("=" * 70)
+print(f"\n📊 Métricas Estándar:")
+print(f"   • Silhouette Score: {silhouette_avg:.4f} (mejor cercano a 1)")
+print(f"   • Davies-Bouldin Index: {davies_bouldin:.4f} (mejor cercano a 0)")
+print(f"   • Calinski-Harabasz Score: {calinski_harabasz:.2f} (mejor más alto)")
+print(f"   • Inercia: {inertia:.2f} (suma de distancias intra-cluster)")
+
+print(f"\n📊 Métricas de Segmentación:")
+print(f"   • IoU (Intersection over Union): {metrics['IoU']:.4f}")
+print(f"   • Dice Coefficient: {metrics['Dice']:.4f}")
+print(f"   • Precision: {metrics['Precision']:.4f}")
+print(f"   • Recall: {metrics['Recall']:.4f}")
+print(f"   • F1 Score: {metrics['F1']:.4f}")
+print(f"   • Accuracy: {metrics['Accuracy']:.4f}")
+
+# Interpretación de métricas
+print(f"\n💡 INTERPRETACIÓN DE MÉTRICAS:")
+if silhouette_avg > 0.5:
+    print(f"   ✅ Silhouette Score ALTO: Clusters bien definidos y separados")
+elif silhouette_avg > 0.25:
+    print(f"   ⚠️ Silhouette Score MEDIO: Clusters aceptables, hay solapamiento")
+else:
+    print(f"   ❌ Silhouette Score BAJO: Clusters poco definidos")
+
+if davies_bouldin < 1.0:
+    print(f"   ✅ Davies-Bouldin BAJO: Buena separación entre clusters")
+else:
+    print(f"   ⚠️ Davies-Bouldin ALTO: Clusters podrían mejorar separación")
+
+if metrics['F1'] > 0.7:
+    print(f"   ✅ F1 Score ALTO: Excelente balance entre precisión y cobertura")
+elif metrics['F1'] > 0.5:
+    print(f"   ⚠️ F1 Score MEDIO: Balance aceptable")
+else:
+    print(f"   ❌ F1 Score BAJO: Necesita mejora en asignaciones")
 
 # 5. Distribución de clusters
 df_original['Cluster'] = clusters
@@ -139,11 +287,11 @@ for cluster in range(3):
         nivel = "✅ ALTO - Desempeño óptimo"
     print(f"\n   🎭 Nivel de Servicio: {nivel}")
 
-# 9. Visualizaciones
+# 9. Visualizaciones mejoradas con métricas
 print(f"\n🎨 GENERANDO VISUALIZACIONES...")
 
-fig = plt.figure(figsize=(20, 12))
-gs = fig.add_gridspec(2, 3, hspace=0.3, wspace=0.3)
+fig = plt.figure(figsize=(22, 14))
+gs = fig.add_gridspec(3, 3, hspace=0.35, wspace=0.3)
 colors = ['#FF6B6B', '#4ECDC4', '#45B7D1']
 
 # Subplot 1: Scatter Distancia vs Demora
@@ -216,6 +364,71 @@ ax6.set_title('Tráfico vs Riesgo por Cluster', fontsize=13, fontweight='bold')
 ax6.legend()
 ax6.grid(True, alpha=0.3)
 
+# Subplot 7: Gráfico de barras de métricas estándar
+ax7 = fig.add_subplot(gs[2, 0])
+metric_names = ['Silhouette', 'Davies-B.\n(invertido)', 'Calinski-H.\n(normalizado)']
+metric_values = [
+    silhouette_avg,
+    1 - davies_bouldin if davies_bouldin < 1 else 0,  # Invertir para que más alto sea mejor
+    min(calinski_harabasz / 1000, 1)  # Normalizar
+]
+bars_metrics = ax7.bar(metric_names, metric_values, color=['#4CAF50', '#FF9800', '#2196F3'], 
+                       edgecolor='black', linewidth=2)
+ax7.set_ylabel('Score', fontsize=11, fontweight='bold')
+ax7.set_title('Métricas de Clustering Estándar', fontsize=13, fontweight='bold')
+ax7.set_ylim([0, 1])
+ax7.grid(True, alpha=0.3, axis='y')
+for bar, val in zip(bars_metrics, metric_values):
+    ax7.text(bar.get_x() + bar.get_width()/2., bar.get_height(),
+            f'{val:.3f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+
+# Subplot 8: Gráfico de barras de métricas de segmentación
+ax8 = fig.add_subplot(gs[2, 1])
+seg_names = ['IoU', 'Dice', 'Precision', 'Recall', 'F1', 'Accuracy']
+seg_values = [metrics['IoU'], metrics['Dice'], metrics['Precision'], 
+              metrics['Recall'], metrics['F1'], metrics['Accuracy']]
+bars_seg = ax8.bar(seg_names, seg_values, color=['#E91E63', '#9C27B0', '#3F51B5', 
+                                                   '#00BCD4', '#4CAF50', '#FF5722'],
+                   edgecolor='black', linewidth=2)
+ax8.set_ylabel('Score', fontsize=11, fontweight='bold')
+ax8.set_title('Métricas de Segmentación', fontsize=13, fontweight='bold')
+ax8.set_ylim([0, 1])
+ax8.grid(True, alpha=0.3, axis='y')
+ax8.tick_params(axis='x', rotation=45)
+for bar, val in zip(bars_seg, seg_values):
+    ax8.text(bar.get_x() + bar.get_width()/2., bar.get_height(),
+            f'{val:.3f}', ha='center', va='bottom', fontweight='bold', fontsize=8)
+
+# Subplot 9: Tabla resumen de métricas
+ax9 = fig.add_subplot(gs[2, 2])
+ax9.axis('off')
+tabla_data = [
+    ['Métrica', 'Valor', 'Interpretación'],
+    ['─' * 15, '─' * 8, '─' * 20],
+    ['Silhouette', f'{silhouette_avg:.3f}', '✅ Bueno' if silhouette_avg > 0.5 else '⚠️ Medio'],
+    ['Davies-Bouldin', f'{davies_bouldin:.3f}', '✅ Bueno' if davies_bouldin < 1 else '⚠️ Medio'],
+    ['F1 Score', f'{metrics["F1"]:.3f}', '✅ Bueno' if metrics['F1'] > 0.7 else '⚠️ Medio'],
+    ['Accuracy', f'{metrics["Accuracy"]:.3f}', '✅ Bueno' if metrics['Accuracy'] > 0.7 else '⚠️ Medio'],
+    ['Precision', f'{metrics["Precision"]:.3f}', '✅ Bueno' if metrics['Precision'] > 0.7 else '⚠️ Medio'],
+    ['Recall', f'{metrics["Recall"]:.3f}', '✅ Bueno' if metrics['Recall'] > 0.7 else '⚠️ Medio'],
+]
+table = ax9.table(cellText=tabla_data, cellLoc='left', loc='center',
+                 colWidths=[0.4, 0.25, 0.35])
+table.auto_set_font_size(False)
+table.set_fontsize(9)
+table.scale(1, 2)
+for i in range(len(tabla_data)):
+    for j in range(3):
+        cell = table[(i, j)]
+        if i == 0:
+            cell.set_facecolor('#4CAF50')
+            cell.set_text_props(weight='bold', color='white')
+        elif i == 1:
+            cell.set_facecolor('#E0E0E0')
+        else:
+            cell.set_facecolor('#F5F5F5' if i % 2 == 0 else 'white')
+ax9.set_title('Resumen de Métricas', fontsize=13, fontweight='bold', pad=20)
+
 plt.savefig('clustering_entregas_original.png', dpi=300, bbox_inches='tight')
 plt.show()
 print("✅ Visualización guardada: clustering_entregas_original.png")
@@ -227,7 +440,7 @@ print("=" * 80)
 
 print(f"\n🎉 ANÁLISIS COMPLETADO")
 print(f"   📊 Método: K-Means sobre datos originales estandarizados")
-print(f"   🎯 Silhouette Score: {silhouette_avg:.3f}")
+print(f"   🎯 Calidad General: {metrics['F1']:.3f} (F1 Score)")
 print(f"   📦 Total entregas: {len(df_original):,}")
 print(f"   📐 Variables utilizadas: {len(feature_columns)}")
 
@@ -250,6 +463,18 @@ print(f"\n{'='*80}")
 print("✨ ANÁLISIS COMPLETADO")
 print("="*80)
 
-# 11. Exportar resultados
+# 11. Exportar resultados con métricas
+df_metricas = pd.DataFrame({
+    'Metrica': ['Silhouette', 'Davies-Bouldin', 'Calinski-Harabasz', 'IoU', 'Dice', 
+                'Precision', 'Recall', 'F1', 'Accuracy', 'Inercia'],
+    'Valor': [silhouette_avg, davies_bouldin, calinski_harabasz, metrics['IoU'], 
+              metrics['Dice'], metrics['Precision'], metrics['Recall'], 
+              metrics['F1'], metrics['Accuracy'], inertia]
+})
+
 df_original.to_csv('entregas_con_clusters.csv', index=False)
-print("\n✅ Resultados exportados: entregas_con_clusters.csv")
+df_metricas.to_csv('metricas_clustering.csv', index=False)
+
+print("\n✅ Resultados exportados:")
+print("   • entregas_con_clusters.csv - Datos con asignación de clusters")
+print("   • metricas_clustering.csv - Todas las métricas calculadas")
